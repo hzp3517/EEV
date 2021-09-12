@@ -17,10 +17,12 @@ from tools.base_worker import BaseWorker
 
 
 class InceptionExtractor(BaseWorker):
-    def __init__(self, mean=[0.33373028, 0.33624287, 0.37479046], std=[0.29977513, 0.30170013, 0.31386868], gpu_id=0):
+    def __init__(self, mean=[0.406, 0.456, 0.485], std=[0.225, 0.224, 0.229], gpu_id=0):
         '''
         注意：mean和std都需要自己在自己的数据集上重新算一遍，而且这里是三通道的图像，这里的顺序是BGR。
-        目前的值是所有video中每个video各抽10帧求得的。
+        pytorch教程中inception-v3模型使用样例中给出的值：mean=[0.406, 0.456, 0.485], std=[0.225, 0.224, 0.229]（已经按照BGR的顺序调整过）
+        所有video中每个video各抽10帧求得的值：mean=[0.33373028, 0.33624287, 0.37479046], std=[0.29977513, 0.30170013, 0.31386868]
+        目前的值为数据集中所有帧的均值和方差：mean=[0.34218652, 0.34897283, 0.39456914], std=[0.29780704, 0.30029216, 0.31210843]
         '''
         self.extractor = inception_v3(pretrained=True) #加载inception_v3模型
         self.device = torch.device("cuda:{}".format(gpu_id))

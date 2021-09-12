@@ -36,8 +36,8 @@ for set_name in set_names:
     all_timestamp = np.array(df['Timestamp (milliseconds)'])
 
 
-    # category_list = ['amusement', 'anger', 'awe', 'concentration', 'confusion', 'contempt', 'contentment', 'disappointment',
-    #                     'doubt', 'elation', 'interest', 'pain', 'sadness', 'surprise', 'triumph']
+    category_list = ['amusement', 'anger', 'awe', 'concentration', 'confusion', 'contempt', 'contentment', 'disappointment',
+                        'doubt', 'elation', 'interest', 'pain', 'sadness', 'surprise', 'triumph']
     num_data = len(all_video_id)
 
     target_path = os.path.join(target_dir, set_name + '_target.h5')
@@ -56,9 +56,8 @@ for set_name in set_names:
                 video_group['timestamp'] = all_timestamp[s_idx: e_idx]
                 if set_name == 'train' or set_name == 'val':
                     video_group['valid'] = all_valid[s_idx: e_idx]
-                    # for cate_idx in range(len(category_list)):
-                    #     video_group[category_list[cate_idx]] = all_label[s_idx: e_idx, cate_idx].squeeze()
-                    video_group['label'] = all_label[s_idx: e_idx]
+                    for cate_idx in range(len(category_list)):
+                        video_group[category_list[cate_idx]] = all_label[s_idx: e_idx, cate_idx].squeeze()
 
             cur_vid = all_video_id[e_idx]
             s_idx = e_idx
@@ -69,6 +68,5 @@ for set_name in set_names:
         video_group['timestamp'] = all_timestamp[s_idx:]
         if set_name == 'train' or set_name == 'val':
             video_group['valid'] = all_valid[s_idx:]
-            # for cate_idx in range(len(category_list)):
-            #     video_group[category_list[cate_idx]] = all_label[s_idx: e_idx, cate_idx].squeeze()
-            video_group['label'] = all_label[s_idx: e_idx]
+            for cate_idx in range(len(category_list)):
+                video_group[category_list[cate_idx]] = all_label[s_idx: e_idx, cate_idx].squeeze()
