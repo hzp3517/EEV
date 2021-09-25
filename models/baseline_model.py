@@ -68,7 +68,7 @@ class BaselineModel(BaseModel):
         #settings
         if self.isTrain:
             if opt.loss_type == 'mse':
-                self.criterion_reg = torch.nn.MSELoss(reduction='sum')
+                self.criterion_reg = torch.nn.MSELoss(reduction='sum') #这里可能需要改成mean试一下
             elif opt.loss_type == 'pcc':
                 self.criterion_reg = PCCLoss()
             else:
@@ -102,7 +102,9 @@ class BaselineModel(BaseModel):
         # forward in each small steps
         self.output = []
         # previous_h = torch.zeros(self.gru_layers, batch_size, self.hidden_size_list[i])
-        previous_h_list = [torch.zeros(self.gru_layers, batch_size, i) for i in self.hidden_size_list]
+        # previous_h_list = [torch.zeros(self.gru_layers, batch_size, i) for i in self.hidden_size_list]
+        previous_h_list = [torch.zeros(self.gru_layers, batch_size, i).to(self.device) for i in self.hidden_size_list]
+        # previous_h_list = previous_h_list.to(self.device)#
 
         for step in range(split_seg_num):
             feature_step_list = [i[:, step*self.max_seq_len: (step+1)*self.max_seq_len] for i in self.feature_list]
@@ -124,7 +126,7 @@ class BaselineModel(BaseModel):
 
     def forward_step(self, ft_list, state_list):
         assert self.num_gru == len(ft_list) == len(state_list)
-        cat_r_out, hidden_list = self.net_grus(ft_list, state_list)
+        cat_r_out, hidden_list = self.net_grus(ft_list, state_list) 
 
         # print(cat_r_out.shape)
 
@@ -140,7 +142,7 @@ class BaselineModel(BaseModel):
     def backward_step(self, pred, target, mask, valid):
         """Calculate the loss for back propagation"""
         valid = valid.unsqueeze(dim=2).repeat(1, 1, 15)
-        pred = pred * mask * valid
+        pred = pred * mask * valid # /len(valid) 可能还要除以特征长度
         target = target * mask * valid
         batch_size = target.size(0)
         loss_name = self.loss_names[0]

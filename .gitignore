@@ -10,5 +10,6 @@ logs*/
 results/
 .tmp/
 csv_results/
-/hzp_test.py
+/hzp_test*
 /models/baseline_model_backup.py
+submit/

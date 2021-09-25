@@ -1,48 +1,82 @@
-'''
-得到vggish特征
-'''
-
-import numpy as np
 import os
-import sys
-import glob
 import torch
-import urllib
+import pandas as pd
+import soundfile as sf
+import numpy as np
+import subprocess
+import librosa
+import scipy.signal as spsig
+from transformers import Wav2Vec2Processor, Wav2Vec2Model
+import sys
+
 
 sys.path.append('/data8/hzp/evoked_emotion/EEV/preprocess')
 from tools.base_worker import BaseWorker
-from tools.torchvggish.vggish import Postprocessor, VGGish
 
 class VggishExtractor(BaseWorker):
-    def __init__(self, vggish_path='/data8/hzp/models/torchvggish/vggish-10086976.pth', 
-                    pca_path='/data8/hzp/models/torchvggish/vggish_pca_params-970ea276.pth', gpu_id=1):
-        self.device = torch.device("cuda:{}".format(gpu_id))
-        #self.extractor = torch.hub.load('harritaylor/torchvggish', 'vggish')
-        self.extractor = VGGish(vggish_path, pca_path, gpu_id)#
+    ''' 抽取vggish特征, 输入音频路径, 输出npy数组, 每帧128d
+    '''
+    def __init__(self, seg_len=1/6, step_size=1/6, device=0):
+        ''' Vggish feature extractor
+            seg_len: window size(with expansion of 1s, padding 0.5s at both sides)
+            step_size: step size of each window
+            device: GPU number
+        '''
+        super().__init__()
+        self.seg_len = seg_len
+        self.step_size = step_size
+        self.device = torch.device(f'cuda:{device}')
+        self.model = self.get_pretrained_vggish()
+    
+    def read_wav(self, wav_path):
+        wav_data, sr = sf.read(wav_path, dtype='int16')
+        return wav_data, sr
+    
+    def get_pretrained_vggish(self):
+        model = torch.hub.load('harritaylor/torchvggish', 'vggish')
+        model.eval()
+        model.postprocess = False
+        model.device = self.device
+        model.to(self.device)
+        return model
+    
+    def get_vggish_segment(self, wav_data, sr, timestamps):
+        block_len = int(0.98 * sr) ## vggish block is 0.96s, add some padding
+        self.seg_len = int(self.seg_len * sr) 
+        pad_context = (block_len - self.seg_len) // 2
+        ans = []
+        for timestamp in timestamps:
+            # timestamp = int(timestamp / 1000 * sr)#? 感觉应该是：timestamp = int(timestamp * sr)
+            timestamp = int(timestamp * sr)#
 
-        self.extractor.to(self.device) #将网络放到指定的设备上
-        self.extractor.eval()
+            if timestamp >= len(wav_data) + pad_context: # 提供的部分音频长度比label的timestamp短
+                cur_time_wav_data = np.array([wav_data[-1]] * block_len)
+            else:                                        # 正常情况, timestamp的时间没超过audio_length
+                left_padding = np.array(max(0, (pad_context - timestamp)) * [wav_data[0]]) #以第0时刻的值填补左侧
+                right_padding = np.array(max(0, (timestamp + self.seg_len + pad_context) - len(wav_data)) * [wav_data[-1]]) #以最后一个时刻的值填补右侧
+                target_data = wav_data[max(0, timestamp-pad_context): timestamp + self.seg_len + pad_context]
+                cur_time_wav_data = np.concatenate([left_padding, target_data, right_padding])
+                cur_time_wav_data = np.array(cur_time_wav_data)
+            ans.append(cur_time_wav_data)
+        return np.array(ans)
 
-
-    def __call__(self, audio_path):
-        if os.path.exists(audio_path):
-            ft = self.extractor(audio_path)
-            return ft.detach().cpu().numpy()
-        else:
+    def __call__(self, wav_path):
+        wav_data, sr = self.read_wav(wav_path) #读入语音文件
+        time_length = len(wav_data) / sr #len(wav_data):2377352, sr:16000. time_length=148.5845
+        timestamps = [self.step_size * n for n in range(int(time_length / self.step_size))] #列表中的元素即为所有timestamp时刻（每个1/6s时间段的起始时刻）：[0, 1/6, 2/6, ..., 148+(2/6)]
+        segments = self.get_vggish_segment(wav_data, sr, timestamps)
+        vggish_feature = list(map(lambda x: self.model.forward(x, sr).cpu().detach().numpy(), segments)) #self.model.forward就是用github上vggish实现中的VGGish类的forward方法，先抽梅尔谱，然后过VGG
+        vggish_feature = np.array(vggish_feature).squeeze()
+        # self.print(f'Extract vggish from {wav_path}: {vggish_feature.shape}')  
+        if len(vggish_feature) < 2 or vggish_feature.shape[0] == 0:
             return None
 
+        return vggish_feature
 
 
 if __name__ == '__main__':
-    # url, audio_path= ("http://soundbible.com/grab.php?id=1698&type=wav", "bus_chatter.wav")
-    # try: urllib.URLopener().retrieve(url, audio_path)
-    # except: urllib.request.urlretrieve(url, audio_path)
-
-    # audio_path = '/data8/hzp/evoked_emotion/EEV_process_data/audios/-NpS1zlc9IE.wav'  #这个样例长度为 21min 38s
-    audio_path = '/data8/hzp/evoked_emotion/EEV_process_data/audios/wzDOl5PQE1k.wav'  #这个样例长度为 27min 51.30s，应该是数据集里最长的，卡空的时候可以处理
-
-    vggish = VggishExtractor(gpu_id=2)
-    ft = vggish(audio_path)
-    print(ft.shape)
+    vggish_extract = VggishExtractor(seg_len=1/6, step_size=1/6, device=0)
+    audio_path = "/data8/hzp/evoked_emotion/EEV_process_data/audios/-01d8S_0AHs.wav" #这个样例长度为2min 28s。即共148s，抽出的特征长为154    
+    ft = vggish_extract(audio_path)
     print(ft)
-
+    print(ft.shape)

@@ -66,10 +66,10 @@ def create_dataset_with_args(opt, **kwargs):
 
     Example:
         >>> from data import create_split_dataset
-        >>> dataset = create_dataset(opt, set_name=['trn', 'val', 'tst'])
+        >>> dataset = create_dataset(opt, set_name=['train', 'val', 'test'])
         This will create 3 datasets, each one get different parameters
         for the specific dataset class, __init__ func must get one parameter
-        eg: dataset.__init__(self, set_name='trn'): ....
+        eg: dataset.__init__(self, set_name='train'): ....
     """
     _kwargs = []
     for key in kwargs:
@@ -111,7 +111,7 @@ class CustomDatasetDataLoader():
             )
 
         else:
-            batch_size = opt.batch_size if kwargs['set_name'] == 'trn' else 1
+            batch_size = opt.batch_size if kwargs['set_name'] == 'train' else 1
             self.dataloader = torch.utils.data.DataLoader(
                 self.dataset,
                 batch_size=batch_size,

@@ -8,7 +8,7 @@ from tqdm import tqdm
 import csv
 
 features_dir = '/data8/hzp/evoked_emotion/EEV_process_data/features/'
-origin_h5f = h5py.File(os.path.join(features_dir, 'vggish.h5'), 'r')
+origin_h5f = h5py.File(os.path.join(features_dir, 'vggish_train_and_val.h5'), 'r')
 test_h5f = h5py.File(os.path.join(features_dir, 'vggish_test.h5'), 'r')
 final_h5f = h5py.File(os.path.join(features_dir, 'vggish_final.h5'), 'w')
 

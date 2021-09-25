@@ -80,4 +80,4 @@ if __name__ == '__main__':
     mkdir(save_dir)
 
     print('making facenet')
-    make_facenet_feature(target_dir, frame_root, save_dir, gpu_id=2)
+    make_facenet_feature(target_dir, frame_root, save_dir, gpu_id=7)

@@ -11,7 +11,7 @@ from utils.metrics import evaluate_regression, remove_padding, scratch_data, smo
 from utils.tools import get_each_dim
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
-def test(model, tst_iter):
+def test(model, test_iter):
     pass
 
 def eval(model, val_iter):
@@ -48,10 +48,11 @@ def eval(model, val_iter):
             total_label.append(_label)
 
 
-    # calculate metrics
-    best_window = None
-    if smooth:
-        total_pred, best_window = smooth_func(total_pred, total_label, best_window=best_window, logger=logger)
+    # # calculate metrics
+    # best_window = None
+    # if smooth:
+    #     #这里可能需要对total_pred进行处理后再送入smooth_fuc，出来也要进行处理
+    #     total_pred, best_window = smooth_func(total_pred, total_label, best_window=best_window, logger=logger)
 
     total_pred = scratch_data(total_pred) #(total_len, 15)
     total_label = scratch_data(total_label) #(total_len, 15)

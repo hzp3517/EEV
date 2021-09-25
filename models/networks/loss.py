@@ -227,7 +227,7 @@ class PCCLoss(nn.Module):
     PCC = cov(X, Y) / [sigma(X) · sigma(Y)]
     '''
     def __init__(self):
-        super(CCCLoss, self).__init__()
+        super(PCCLoss, self).__init__()
         self.epsilon = 1e-6
 
     def forward(self, y_pred, y_true, seq_lens=None):

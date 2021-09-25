@@ -32,8 +32,8 @@ class EEVDataset(BaseDataset):
         '''
         super().__init__(opt)
         self.root = '/data8/hzp/evoked_emotion/EEV_process_data/'
-        # self.category_list = ['amusement', 'anger', 'awe', 'concentration', 'confusion', 'contempt', 'contentment', 
-        #                 'disappointment', 'doubt', 'elation', 'interest', 'pain', 'sadness', 'surprise', 'triumph']
+        self.category_list = ['amusement', 'anger', 'awe', 'concentration', 'confusion', 'contempt', 'contentment', 
+                        'disappointment', 'doubt', 'elation', 'interest', 'pain', 'sadness', 'surprise', 'triumph'] #test中会用到
         self.feature_set = list(map(lambda x: x.strip(), opt.feature_set.split(',')))
         # self.normalize = opt.normalize
         self.norm_features = list(map(lambda x: x.strip(), opt.norm_features.split(',')))
@@ -152,7 +152,7 @@ class EEVDataset(BaseDataset):
                 'vid': vid,
                 'label': label,
                 'valid': valid
-            } if self.set_name != 'tst' else {
+            } if self.set_name != 'test' else {
                 'feature_list': feature, #list
                 'timestamp': timestamp.long(),
                 'mask': mask.float(),
@@ -163,14 +163,47 @@ class EEVDataset(BaseDataset):
 
 
 if __name__ == '__main__':
-    class test:
-        feature_set = 'inception,vggish'
+    # class test:
+    #     feature_set = 'inception,vggish'
+    #     dataroot = '/data8/hzp/evoked_emotion/EEV_process_data/'
+    #     max_seq_len = 60
+    #     norm_features = 'vggish'
+    
+    # opt = test()
+    # a = EEVDataset(opt, 'train')
+    # iter_a = iter(a)
+    # data1 = next(iter_a)
+    # data2 = next(iter_a)
+    # data3 = next(iter_a)
+    # batch_data = a.collate_fn([data1, data2, data3])
+    # print(batch_data.keys())
+    # print(batch_data['feature_list'][0].shape)
+
+    # # print(batch_data[a.category_list[5]].shape)
+    # print(batch_data['valid'])
+    # print(batch_data['label'])
+
+    # print(batch_data['mask'].shape)
+    # print(batch_data['length'])
+    # print(torch.sum(batch_data['mask'][0]), torch.sum(batch_data['mask'][1]), torch.sum(batch_data['mask'][2]))
+    # print(batch_data['feature_names'])
+    # print(batch_data['vid'])
+    # # print(data['feature'].shape)
+    # # print(data['feature_lens'])
+    # # print(data['feature_names'])
+    # # print(data['length'])
+
+
+
+
+    class hzp:
+        feature_set = 'inception'
         dataroot = '/data8/hzp/evoked_emotion/EEV_process_data/'
         max_seq_len = 60
-        norm_features = 'vggish'
+        norm_features = 'None'
     
-    opt = test()
-    a = EEVDataset(opt, 'train')
+    opt = hzp()
+    a = EEVDataset(opt, 'test')
     iter_a = iter(a)
     data1 = next(iter_a)
     data2 = next(iter_a)
@@ -178,10 +211,6 @@ if __name__ == '__main__':
     batch_data = a.collate_fn([data1, data2, data3])
     print(batch_data.keys())
     print(batch_data['feature_list'][0].shape)
-
-    # print(batch_data[a.category_list[5]].shape)
-    print(batch_data['valid'])
-    print(batch_data['label'])
 
     print(batch_data['mask'].shape)
     print(batch_data['length'])

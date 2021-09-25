@@ -1,3 +1,7 @@
+'''
+直接用原始抽出的vggish特征对齐到各个时刻，没有用padding
+'''
+
 import os
 import os.path as osp
 import json
@@ -33,27 +37,41 @@ def get_timestamp(target_dir): #一次性将所有集合的所有视频的timest
 
 
 def get_vggish_ft(all_videos, audio_root, video_id, gpu_id):
-    vggish = VggishExtractor(seg_len=1/6, step_size=1/6, device=gpu_id) #标签timestamp是6Hz
+    vggish = VggishExtractor(gpu_id=gpu_id)
     audio_path = osp.join(audio_root, video_id + '.wav')
     ft = vggish(audio_path)
     timestamps = all_videos[video_id]
-    num_ts = len(timestamps)
-    if ft.shape[0] >= num_ts:
-        ft = ft[:num_ts]
-    else:
-        pad_ft = []
-        for i in range(num_ts - ft.shape[0]):
-            pad_ft.append(ft[-1])
-        pad_ft = np.stack(pad_ft)
-        ft = np.concatenate((ft, pad_ft), axis=0)
-    ft = ft.astype(np.float32)
-    return timestamps, ft
+    # num_ts = len(timestamps)
+
+    second_ts = [i / 1000000 for i in timestamps]
+    aligned_ft = []
+    for ts in second_ts:
+        idx = math.floor(ts / 0.96)
+        if idx < len(ft):
+            aligned_ft.append(ft[idx])
+        else:
+            aligned_ft.append(ft[-1])
+    aligned_ft = np.stack(aligned_ft)
+
+    # if num_ts <= len(ft):
+    #     ft = ft[:num_ts]
+    # else:
+    #     last_ft = ft[-1]
+    #     pad_ft = []
+    #     for i in range(num_ts - len(ft)):
+    #         pad_ft.append(last_ft)
+    #     pad_ft = np.array(pad_ft)
+    #     ft = np.concatenate((ft, pad_ft), axis=0)
+
+    aligned_ft = aligned_ft.astype(np.float32)
+    return timestamps, aligned_ft
 
 
 
 def make_vggish_feature(target_dir, audio_root, save_dir, gpu_id):
     partition = h5py.File(osp.join(target_dir, 'partition.h5'), 'r')
-    vggish_h5f = h5py.File(osp.join(save_dir, 'vggish.h5'), 'w')
+    # vggish_h5f = h5py.File(osp.join(save_dir, 'vggish.h5'), 'w')
+    vggish_h5f = h5py.File(osp.join(save_dir, 'vggish_method2.h5'), 'w')
     all_videos = get_timestamp(target_dir)
     for set_name in ['train', 'val', 'test']:
         vggish_set_group = vggish_h5f.create_group(set_name)
