@@ -25,7 +25,7 @@ import math
 #                 continue
 #             img = cv2.resize(img, (img_size, img_size))
 #             img = img.reshape(-1, 3)
-#             img = img / 256.0 #将像素值的范围缩到[0, 1]
+#             img = img / 255.0 #将像素值的范围缩到[0, 1]
 #             all_images.append(img)
 
 #     all_images = np.concatenate(all_images, axis=0)
@@ -67,7 +67,7 @@ def cal_mean_std(image_root, save_dir): #注意：颜色通道顺序为BGR以适
                 continue
             img = cv2.resize(img, (img_size, img_size))
             img = img.reshape(-1, 3)
-            img = img / 256.0 #将像素值的范围缩到[0, 1]
+            img = img / 255.0 #将像素值的范围缩到[0, 1]
             video_img_list.append(img)
             cnt_img += 1
         video_images = np.concatenate(video_img_list, axis=0)

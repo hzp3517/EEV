@@ -13,3 +13,4 @@ csv_results/
 /hzp_test*
 /models/baseline_model_backup.py
 submit/
+/autorun/auto

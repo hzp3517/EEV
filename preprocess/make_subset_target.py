@@ -19,11 +19,13 @@ def mkdir(path):
         pass
 
 target_dir = '/data8/hzp/evoked_emotion/EEV_process_data/target/'
-subset_dir = os.path.join(target_dir, 'subset_version')
+# subset_dir = os.path.join(target_dir, 'subset_version')
+subset_dir = os.path.join(target_dir, 'subset_version_5')
 mkdir(subset_dir)
 
 set_list = ['train', 'val', 'test']
-subset_num_dic = {'train': 202, 'val': 50, 'test': 88}
+# subset_num_dic = {'train': 202, 'val': 50, 'test': 88} # 各个集合取1/15的数量
+subset_num_dic = {'train': 606, 'val': 149, 'test': 264} # 各个集合取1/5的数量
 
 # #先统计一下各个set的video数量
 # partition_h5f = h5py.File(os.path.join(target_dir, 'partition.h5'), 'r')
@@ -36,7 +38,7 @@ subset_partition = h5py.File(os.path.join(subset_dir, 'partition.h5'), 'w')
 for set_name in set_list:
     target_h5f = h5py.File(os.path.join(target_dir, set_name + '_target.h5'), 'r')
     subset_target = h5py.File(os.path.join(subset_dir, set_name + '_target.h5'), 'w')
-    video_ids = partition_h5f[set_name]['valid'][()]
+    video_ids = partition_h5f[set_name]['valid']
     video_ids = [i.decode() for i in video_ids]
     video_ids = random.sample(video_ids, subset_num_dic[set_name])
     partition_set_group = subset_partition.create_group(set_name)

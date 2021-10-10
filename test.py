@@ -69,29 +69,11 @@ def eval(model, val_iter, best_window=None):
     return mean_mse, mean_rmse, mean_pcc, mean_ccc, total_pred, total_label
 
 def test(model, test_iter, best_window=None):
-
-    # print(next(model.net_cg_1.parameters()).device)#
-
-
     model.eval()
     total_pred = {}
     total_timestamp = {}
-
-    # print('---------')
-    # print(next(model.net_cg_1.parameters()).device)#
-
-
     for i, data in enumerate(test_iter):         # inner loop within one epoch
         model.set_input(data, load_label=False)  # unpack data from dataset and apply preprocessing
-
-
-        # print('---------')
-        # print(next(model.net_cg_1.parameters()).device)#
-        # print(next(model.net_moe.parameters()).device)#
-        # print(next(model.net_cg_2.parameters()).device)#
-        # print(next(model.net_grus.parameters()).device)#
-
-
         model.test()
         lengths = data['length'].numpy()
         vids = data['vid']
@@ -125,22 +107,9 @@ def load_config(opt_path):
 
 def load_model_from_checkpoint(opt_config, cpkt_dir):
     model = create_model(opt_config)
-
-    # print(opt_config.gpu_ids)#
-    # print(model.device)#
-
     model.load_networks_folder(cpkt_dir)
     model.eval()
-
-    
-    # print(next(model.net_cg_1.parameters()).device)#
-
-
     model.cuda()
-
-    # print(next(model.net_cg_1.parameters()).device)#
-
-
     model.isTrain = False
     return model
 

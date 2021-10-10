@@ -55,12 +55,18 @@ class EEVDataset(BaseDataset):
         return features
 
     def load_label(self):
-        partition_h5f = h5py.File(os.path.join(self.root, 'target', 'partition.h5'), 'r')
+        # partition_h5f = h5py.File(os.path.join(self.root, 'target', 'partition.h5'), 'r')
         # partition_h5f = h5py.File(os.path.join(self.root, 'target', 'toy_version', 'partition.h5'), 'r')
+        # partition_h5f = h5py.File(os.path.join(self.root, 'target', 'subset_version', 'partition.h5'), 'r')
+        partition_h5f = h5py.File(os.path.join(self.root, 'target', 'subset_version_5', 'partition.h5'), 'r')
+
         self.video_ids = sorted(partition_h5f[self.set_name]['valid'])
         self.video_ids = list(map(lambda x: x.decode(), self.video_ids))
-        label_h5f = h5py.File(os.path.join(self.root, 'target', '{}_target.h5'.format(self.set_name)), 'r')
+        # label_h5f = h5py.File(os.path.join(self.root, 'target', '{}_target.h5'.format(self.set_name)), 'r')
         # label_h5f = h5py.File(os.path.join(self.root, 'target', 'toy_version', '{}_target.h5'.format(self.set_name)), 'r')
+        # label_h5f = h5py.File(os.path.join(self.root, 'target', 'subset_version', '{}_target.h5'.format(self.set_name)), 'r')
+        label_h5f = h5py.File(os.path.join(self.root, 'target', 'subset_version_5', '{}_target.h5'.format(self.set_name)), 'r')
+
         self.target = {}
         # for _id in self.video_ids:
         print('load label:')#

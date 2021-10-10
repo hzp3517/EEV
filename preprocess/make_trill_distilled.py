@@ -1,7 +1,3 @@
-'''
-直接用原始抽出的vggish特征对齐到各个时刻，没有用padding
-'''
-
 import os
 import os.path as osp
 import json
@@ -9,10 +5,8 @@ import numpy as np
 import pandas as pd
 import h5py 
 from tqdm import tqdm
-import csv
-import math
 
-from tools.vggish import VggishExtractor
+from tools.trill_distilled import TrillDistilledExtractor
 
 def mkdir(path):
     try:
@@ -36,52 +30,38 @@ def get_timestamp(target_dir): #一次性将所有集合的所有视频的timest
 
 
 
-def get_vggish_ft(all_videos, audio_root, video_id, gpu_id):
-    vggish = VggishExtractor(gpu_id=gpu_id)
+def get_trill_distilled_ft(all_videos, audio_root, video_id, batch_size, gpu_id):
+    trill_distilled = TrillDistilledExtractor(seg_len=1/6, gpu_id=gpu_id) #标签timestamp是6Hz
     audio_path = osp.join(audio_root, video_id + '.wav')
-    ft = vggish(audio_path)
+    ft = trill_distilled(audio_path, batch_size=batch_size)
     timestamps = all_videos[video_id]
-    # num_ts = len(timestamps)
-
-    second_ts = [i / 1000000 for i in timestamps]
-    aligned_ft = []
-    for ts in second_ts:
-        idx = math.floor(ts / 0.96)
-        if idx < len(ft):
-            aligned_ft.append(ft[idx])
-        else:
-            aligned_ft.append(ft[-1])
-    aligned_ft = np.stack(aligned_ft)
-
-    # if num_ts <= len(ft):
-    #     ft = ft[:num_ts]
-    # else:
-    #     last_ft = ft[-1]
-    #     pad_ft = []
-    #     for i in range(num_ts - len(ft)):
-    #         pad_ft.append(last_ft)
-    #     pad_ft = np.array(pad_ft)
-    #     ft = np.concatenate((ft, pad_ft), axis=0)
-
-    aligned_ft = aligned_ft.astype(np.float32)
-    return timestamps, aligned_ft
+    num_ts = len(timestamps)
+    if ft.shape[0] >= num_ts:
+        ft = ft[:num_ts]
+    else:
+        pad_ft = []
+        for _ in range(num_ts - ft.shape[0]):
+            pad_ft.append(ft[-1])
+        pad_ft = np.stack(pad_ft)
+        ft = np.concatenate((ft, pad_ft), axis=0)
+    ft = ft.astype(np.float32)
+    return timestamps, ft
 
 
 
-def make_vggish_feature(target_dir, audio_root, save_dir, gpu_id):
+def make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size, gpu_id):
     partition = h5py.File(osp.join(target_dir, 'partition.h5'), 'r')
-    # vggish_h5f = h5py.File(osp.join(save_dir, 'vggish.h5'), 'w')
-    vggish_h5f = h5py.File(osp.join(save_dir, 'vggish_method2.h5'), 'w')
+    trill_distilled_h5f = h5py.File(osp.join(save_dir, 'trill_distilled.h5'), 'w')
     all_videos = get_timestamp(target_dir)
     for set_name in ['train', 'val', 'test']:
-        vggish_set_group = vggish_h5f.create_group(set_name)
+        trill_distilled_set_group = trill_distilled_h5f.create_group(set_name)
         video_ids = partition[set_name]['valid']
         for _id in tqdm(video_ids, desc=set_name):
             _id = _id.decode()
-            vggish_group = vggish_set_group.create_group(_id)
-            timestamp, vggish_ft = get_vggish_ft(all_videos, audio_root, _id, gpu_id) #按照video_id号抽取特征
-            vggish_group['timestamp'] = timestamp
-            vggish_group['feature'] = vggish_ft
+            trill_distilled_group = trill_distilled_set_group.create_group(_id)
+            timestamp, trill_distilled_ft = get_trill_distilled_ft(all_videos, audio_root, _id, batch_size, gpu_id) #按照video_id号抽取特征
+            trill_distilled_group['timestamp'] = timestamp
+            trill_distilled_group['feature'] = trill_distilled_ft
 
 
 def check_extracted(audio_root, target_dir): #检查是否所有有效的视频都抽出了音频
@@ -103,5 +83,5 @@ if __name__ == '__main__':
 
     # check_extracted(audio_root, target_dir)
 
-    print('making vggish')
-    make_vggish_feature(target_dir, audio_root, save_dir, gpu_id=6)
+    print('making trill_distilled')
+    make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size=128, gpu_id=0)

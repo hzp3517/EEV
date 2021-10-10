@@ -16,6 +16,12 @@ def mkdir(path):
     except FileExistsError:
         pass
 
+def chunk(lst, chunk_size): # chunk的作用：配合循环使用，每n个元素截断一次形成一个列表
+    idx = 0
+    while chunk_size * idx < len(lst):
+        yield lst[idx*chunk_size: (idx+1)*chunk_size]
+        idx += 1
+
 def get_timestamp(target_dir): #一次性将所有集合的所有视频的timestamp信息读入
     '''
     {video_id: [timestamp_list]}
@@ -30,7 +36,7 @@ def get_timestamp(target_dir): #一次性将所有集合的所有视频的timest
     return all_videos
 
 
-def get_inception_ft(all_videos, frame_root, video_id, gpu_id):
+def get_inception_ft(all_videos, frame_root, video_id, batch_size, gpu_id):
     inception = InceptionExtractor(gpu_id=gpu_id)
     assert (video_id in all_videos.keys())
     frame_dir = osp.join(frame_root, video_id)
@@ -41,25 +47,24 @@ def get_inception_ft(all_videos, frame_root, video_id, gpu_id):
 
     if num_ts <= num_files:
         frame_list = frame_list[:num_ts]
+    else:
+        last_frame = frame_list[-1]
+        for _ in range(num_ts - num_files):
+            frame_list.append(last_frame)
+
     video_fts = []
-    for frame in frame_list:
-        frame_path = osp.join(frame_dir, frame)
-        ft = inception(frame_path) #返回的ft:(1, 2048)
-        ft = np.squeeze(ft) #去掉冗余的维度
-        video_fts.append(ft)
-    if num_ts > num_files:
-        frame_path = osp.join(frame_dir, frame_list[-1]) #重复最后一帧
-        ft = inception(frame_path) #返回的ft:(1, 2048)
-        ft = np.squeeze(ft) #去掉冗余的维度
-        for i in range(num_ts - num_files):
-            video_fts.append(ft)
+    for frame_batch in chunk(frame_list, batch_size):
+    # for frame_batch in tqdm(chunk(frame_list, batch_size)):
+        frame_paths = [osp.join(frame_dir, i) for i in frame_batch]
+        fts = inception(frame_paths) # 返回的ft: (bs, 2048)，即使只有一张图片送进去，返回的也是(1, 2048)
+        video_fts.append(fts)
+    video_fts = np.concatenate(video_fts, axis=0)
+    video_fts = video_fts.astype(np.float32)
     
-    feature = np.array(video_fts, dtype=np.float32)
-    return timestamps, feature
+    return timestamps, video_fts
 
 
-
-def make_inception_feature(target_dir, frame_root, save_dir, gpu_id):
+def make_inception_feature(target_dir, frame_root, save_dir, batch_size, gpu_id):
     partition = h5py.File(osp.join(target_dir, 'partition.h5'), 'r')
     inception_h5f = h5py.File(osp.join(save_dir, 'inception.h5'), 'w')
     all_videos = get_timestamp(target_dir)
@@ -69,7 +74,7 @@ def make_inception_feature(target_dir, frame_root, save_dir, gpu_id):
         for _id in tqdm(video_ids, desc=set_name):
             _id = _id.decode()
             inception_group = inception_set_group.create_group(_id)
-            timestamp, inception_ft = get_inception_ft(all_videos, frame_root, _id, gpu_id) #按照video_id号抽取特征
+            timestamp, inception_ft = get_inception_ft(all_videos, frame_root, _id, batch_size, gpu_id) #按照video_id号抽取特征
             inception_group['timestamp'] = timestamp
             inception_group['feature'] = inception_ft
 
@@ -121,9 +126,11 @@ if __name__ == '__main__':
     # check_image(frame_root) #经检验，所有frame下的目录中，所有图像的序号没有间断
 
     # all_videos = get_timestamp(target_dir)
-    # get_inception_ft(all_videos, frame_root, '-zC8-Jh2z9k')
+    # timestamps, video_fts = get_inception_ft(all_videos, frame_root, '-zC8-Jh2z9k', batch_size=64, gpu_id=7)
+    # print(video_fts.shape)
+    # print(video_fts)
 
     # check_extracted(frame_root, target_dir)
 
     print('making inception')
-    make_inception_feature(target_dir, frame_root, save_dir, gpu_id=7)
+    make_inception_feature(target_dir, frame_root, save_dir, batch_size=64, gpu_id=7)

@@ -32,44 +32,40 @@ class InceptionExtractor(BaseWorker):
         self.mean = mean
         self.std = std
 
-    def __call__(self, img):
-        if not isinstance(img, (np.ndarray, str)):
-            raise ValueError('Input img parameter must be either str of img path or img np.ndarrays')
-        if isinstance(img, np.ndarray):
-            if img.shape == (299, 299, 3):
-                raise ValueError('Input img ndarray must have shape (299, 299, 3)')
-        if isinstance(img, str):
-            img_path = img
-            if os.path.exists(img_path):
-                img = cv2.imread(img_path)
+    def __call__(self, img_list):
+        imgs = []
+        for img in img_list:
+            if os.path.exists(img):
+                img = cv2.imread(img)
                 if not isinstance(img, np.ndarray):
                     raise IOError(f'Warning: Error in {img_path}')
-                
                 img = cv2.resize(img, (299, 299))
-                
             else:
-                feat = np.zeros([1, self.dim]) # 缺图就返回0
-                #return feat, np.ones([1, 1000]) / 1000
-                return feat
+                img = np.zeros((299, 299, 3)) # 缺图就返回一张全0的图
 
-        #preprocess
-        img = img / 256.0 #将像素值的范围缩到[0, 1]
-        img = (img - self.mean) / self.std # normalize。img的后缘维度和mean和std相同，可以采用广播机制直接计算
-        img = img[:, :, ::-1].copy() # 把颜色顺序从BGR转为RGB
-        img = torch.from_numpy(img).float().to(self.device)
-        img = img.unsqueeze(0) #增加batch_size维度
-        img = img.permute(0, 3, 1, 2) #(bs, h, w, c) -> (bs, c, h, w)
+            #preprocess
+            img = img / 255.0 #将像素值的范围缩到[0, 1]
+            img = (img - self.mean) / self.std # normalize。img的后缘维度和mean和std相同，可以采用广播机制直接计算
+            img = img[:, :, ::-1].copy() # 把颜色顺序从BGR转为RGB
+            img = torch.from_numpy(img)
+            img = img.unsqueeze(0) #增加batch_size维度
+            img = img.permute(0, 3, 1, 2) #(bs, h, w, c) -> (bs, c, h, w)
+            imgs.append(img)
 
-        soft_label, ft = self.extractor(img)
-        return ft.detach().cpu().numpy()
+        imgs = torch.cat(imgs, dim=0).float().to(self.device) # (bs, c, h, w)
+
+        soft_labels, fts = self.extractor(imgs)
+        return fts.detach().cpu().numpy()
 
 
 if __name__ == '__main__':
-    img_path = '/data8/hzp/evoked_emotion/EEV_process_data/frames/-Dzh3EhJbBg/000001.jpg'
+    img_path_1 = '/data8/hzp/evoked_emotion/EEV_process_data/frames/-Dzh3EhJbBg/000001.jpg'
+    img_path_2 = '/data8/hzp/evoked_emotion/EEV_process_data/frames/-Dzh3EhJbBg/000002.jpg'
+    img_path_list = [img_path_1, img_path_2] #一个batch的图像列表
     inception = InceptionExtractor()
-    ft = inception(img_path)
-    print(ft.shape)
-    print(ft)
+    fts = inception(img_path_list)
+    print(fts.shape)
+    print(fts)
     
 
 
