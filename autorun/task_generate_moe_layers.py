@@ -87,36 +87,31 @@ def make_task(independent_parameters, param_order_list, hidden_size, norm_featur
         # -S <作业名称> 指定screen作业的名称
    
 auto_script_dir = 'autorun/auto'           # 生成脚本路径
-auto_csv_dir = 'autorun/csv_results/subset_5'       # 生成结果csv文件路径，注意train_csv.py文件中也需要同步修改！！！
+auto_csv_dir = 'autorun/csv_results/moe_layers'       # 生成结果csv文件路径，注意train_csv.py文件中也需要同步修改！！！
 # 当需要在同一组设定下跑多次时候最好在这里开个子目录，而不是改下面的"name"
 
-task_script = 'scripts/train_baseline_auto.sh'     # 执行script路径
-avialable_gpus = [6, 7]                 # 可用GPU有哪些
+task_script = 'scripts/train_baseline_auto_moe.sh'     # 执行script路径
+avialable_gpus = [5, 6]                 # 可用GPU有哪些
 num_sessions = 2                        # 一共开多少个session同时执行（即开几个screen的会话）
 avialable_gpus = avialable_gpus[:num_sessions]
 screen_name = 'hzp_eev_train'
 independent_parameters = {                              # 一共有哪些非关联参数
-    # bash scripts/train_debug.sh inception None 512 mse 5e-4 1 5
+    # bash scripts/train_debug.sh inception None 512 10 mse 5e-4 1 5
 
     'name': ['baseline'], #注意：此列表中只能有一个元素，这个名字与log文件名最前面一部分也是关联的
-    # 'feature': ['inception', 'vggish', 'inception,vggish'],
-    # 'feature': ['efficientnet', 'trill_distilled', 'efficientnet,trill_distilled'],
-    'feature': ['efficientnet,trill_distilled'],
-    'expert_num': [10],
+    'feature': ['inception', 'vggish', 'inception,vggish'],
+    'expert_num': [2, 4, 8],
     'loss_type': ['mse'],
-    # 'lr': [1e-3, 5e-4, 1e-4],
-    'lr': [1e-3, 1e-4],
-    # 'run_idx': [1, 2]
-    'run_idx': [1]
-
+    'lr': [1e-4],
+    'run_idx': [1, 2]
 }
 param_order_list = ['name', 'feature', 'norm_features', 'hidden_size', 'expert_num', 'loss_type', 'lr', 'run_idx'] #除gpu外所有参数的顺序
 #可能需要修改：
-# hidden_size = ['256', '512', '256,512']
-hidden_size = ['256,512']
-# hidden_size = ['512', '128', '512,128']
-norm_features = ['trill_distilled'] #需要做trn norm的单个特征名称
-# norm_features = ['vggish'] #需要做trn norm的单个特征名称
+hidden_size = ['512', '128', '512,128']
+# hidden_size = ['512', '512,128']
+# hidden_size = ['128']
+# hidden_size = ['512,128']
+norm_features = ['vggish'] #需要做trn norm的单个特征名称
 assert len(hidden_size) == len(independent_parameters['feature'])
 
 mkdir(auto_script_dir)
@@ -166,16 +161,16 @@ with open(csv_path, 'w') as f:
     writer = csv.writer(f)
     #写入表头
     file_head = ['feature']
-    for lr in independent_parameters['lr']:
+    for expert_num in independent_parameters['expert_num']:
         for run in independent_parameters['run_idx']:
-            file_head.append(str(lr) + '_run' + str(run) + '_epoch')
-            file_head.append(str(lr) + '_run' + str(run) + '_pcc')
+            file_head.append(str(expert_num) + '_run' + str(run) + '_epoch')
+            file_head.append(str(expert_num) + '_run' + str(run) + '_pcc')
     writer.writerow(file_head)
     #写入列标题
     for feature in independent_parameters['feature']:
         feature = feature.replace(',', '+')
         line = [feature]
-        for _ in range(len(independent_parameters['lr']) * len(independent_parameters['run_idx']) * 2):
+        for _ in range(len(independent_parameters['expert_num']) * len(independent_parameters['run_idx']) * 2):
             line.append('-') #在应该填入实验结果的位置先以'-'补上
         writer.writerow(line)
     fcntl.flock(f.fileno(), fcntl.LOCK_UN) #解锁

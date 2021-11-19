@@ -45,7 +45,8 @@ if __name__ == '__main__':
     # target_dir = '/data8/hzp/evoked_emotion/EEV_process_data/target/'
     # feature_dir = '/data8/hzp/evoked_emotion/EEV_process_data/features/'
     video_ids = load_train_video_ids(root)
-    features = ['vggish']
+    # features = ['vggish']
+    features = ['trill_distilled']
     for ft in features:
         print('process feature:', ft)
         mean_f, std_f = cal_mean_std(root, video_ids, ft) #返回值为np.array类型

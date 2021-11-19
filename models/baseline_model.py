@@ -153,53 +153,53 @@ class BaselineModel(BaseModel):
             torch.nn.utils.clip_grad_norm_(getattr(self, 'net'+model).parameters(), 5)
 
 
-if __name__ == '__main__':
-    import sys
-    sys.path.append('/data8/hzp/evoked_emotion/EEV/utils')#
-    # from tools import calc_total_dim
-    from tools import get_each_dim
-    from data import create_dataset, create_dataset_with_args
+# if __name__ == '__main__':
+#     import sys
+#     sys.path.append('/data8/hzp/evoked_emotion/EEV/utils')#
+#     # from tools import calc_total_dim
+#     from tools import get_each_dim
+#     from data import create_dataset, create_dataset_with_args
 
-    class test:
-        feature_set = 'inception,vggish'
-        norm_features = 'vggish'
-        max_seq_len = 60
-        gru_layers = 2
-        hidden_size = '512,128'
-        # input_dim = calc_total_dim(list(map(lambda x: x.strip(), feature_set.split(',')))) #计算出拼接后向量的维度
-        input_dim = get_each_dim(list(map(lambda x: x.strip(), feature_set.split(',')))) #得到每个特征对应的向量维度
-        lr = 1e-4
-        beta1 = 0.5
-        batch_size = 8
-        epoch_count = 1
-        niter=20
-        niter_decay=30
-        gpu_ids = 0
-        isTrain = True
-        checkpoints_dir = ''
-        name = ''
-        cuda_benchmark = ''
-        dropout_rate = 0.3
-        loss_type = 'mse'
-        dataset_mode = 'eev'
-        serial_batches = True
-        num_threads = 0
-        max_dataset_size = float("inf")
-        expert_num = 10
+#     class test:
+#         feature_set = 'inception,vggish'
+#         norm_features = 'vggish'
+#         max_seq_len = 60
+#         gru_layers = 2
+#         hidden_size = '512,128'
+#         # input_dim = calc_total_dim(list(map(lambda x: x.strip(), feature_set.split(',')))) #计算出拼接后向量的维度
+#         input_dim = get_each_dim(list(map(lambda x: x.strip(), feature_set.split(',')))) #得到每个特征对应的向量维度
+#         lr = 1e-4
+#         beta1 = 0.5
+#         batch_size = 8
+#         epoch_count = 1
+#         niter=20
+#         niter_decay=30
+#         gpu_ids = 0
+#         isTrain = True
+#         checkpoints_dir = ''
+#         name = ''
+#         cuda_benchmark = ''
+#         dropout_rate = 0.3
+#         loss_type = 'mse'
+#         dataset_mode = 'eev'
+#         serial_batches = True
+#         num_threads = 0
+#         max_dataset_size = float("inf")
+#         expert_num = 10
 
-    opt = test()
-    net_a = BaselineModel(opt)
+#     opt = test()
+#     net_a = BaselineModel(opt)
 
-    dataset, val_dataset = create_dataset_with_args(opt, set_name=['train', 'val'])  # create a dataset given opt.dataset_mode and other options
+#     dataset, val_dataset = create_dataset_with_args(opt, set_name=['train', 'val'])  # create a dataset given opt.dataset_mode and other options
 
-    total_iters = 0                             # the total number of training iterations
-    for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
-        epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
-        for i, data in enumerate(dataset):  # inner loop within one epoch
-            total_iters += 1                # opt.batch_size
-            epoch_iter += opt.batch_size
-            net_a.set_input(data)           # unpack data from dataset and apply preprocessing
-            net_a.run()
+#     total_iters = 0                             # the total number of training iterations
+#     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
+#         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
+#         for i, data in enumerate(dataset):  # inner loop within one epoch
+#             total_iters += 1                # opt.batch_size
+#             epoch_iter += opt.batch_size
+#             net_a.set_input(data)           # unpack data from dataset and apply preprocessing
+#             net_a.run()
         
 
 

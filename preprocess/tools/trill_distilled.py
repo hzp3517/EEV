@@ -22,10 +22,16 @@ class TrillDistilledExtractor(BaseWorker):
     '''
     模型链接：https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/3
     '''
-    def __init__(self, seg_len=1/6, gpu_id=0):
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
-        physical_devices = tf.config.list_physical_devices('GPU') # 当前可用的gpu列表
-        tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True) #使用哪一块gpu
+    # def __init__(self, seg_len=1/6, gpu_id=0):
+    def __init__(self, seg_len=1/6):
+        # os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
+        # physical_devices = tf.config.list_physical_devices('GPU') # 当前可用的gpu列表
+
+        # # tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True) #使用哪一块gpu
+        # # tf.config.experimental.set_memory_growth(physical_devices[0], True) #指定要使用的gpu（因为前面已经设置了只有1块卡能看到，所以这里的下标一定是0）
+
+        # for gpu in physical_devices:
+        #     tf.config.experimental.set_memory_growth(gpu, True) # 将GPU的显存使用策略设置为“仅在需要时申请显存空间”
 
         self.seg_len = seg_len
         self.DEFAULT_SR = 16000
@@ -54,11 +60,28 @@ class TrillDistilledExtractor(BaseWorker):
 
 
 if __name__ == '__main__':
-    trill_distilled_extract = TrillDistilledExtractor(gpu_id=0)
-    audio_path = "/data8/hzp/evoked_emotion/EEV_process_data/audios/-01d8S_0AHs.wav" #这个样例长度为2min 28s，即共148s
+    gpu_id = 0
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
+    
+    os.environ['CUDA_VISIBLE_DEVICES'] = ' ' #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
+
+    physical_devices = tf.config.list_physical_devices('GPU') # 当前可用的gpu列表
+
+    print(physical_devices)
+
+    for gpu in physical_devices:
+        tf.config.experimental.set_memory_growth(gpu, True) # 将GPU的显存使用策略设置为“仅在需要时申请显存空间”
+
+
+
+
+    # trill_distilled_extract = TrillDistilledExtractor(gpu_id=0)
+    trill_distilled_extract = TrillDistilledExtractor()
+    # audio_path = "/data8/hzp/evoked_emotion/EEV_process_data/audios/-01d8S_0AHs.wav" #这个样例长度为2min 28s，即共148s
+    audio_path = "/data8/hzp/evoked_emotion/EEV_process_data/audios/9-z8C5uGD74.wav"
     fts = trill_distilled_extract(audio_path, batch_size=2048)
     print(fts)
     print(fts.shape)
-    print(type(fts))
+    # print(type(fts))
 
 

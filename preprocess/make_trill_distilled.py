@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import h5py 
 from tqdm import tqdm
+import tensorflow as tf
 
 from tools.trill_distilled import TrillDistilledExtractor
 
@@ -30,8 +31,10 @@ def get_timestamp(target_dir): #一次性将所有集合的所有视频的timest
 
 
 
-def get_trill_distilled_ft(all_videos, audio_root, video_id, batch_size, gpu_id):
-    trill_distilled = TrillDistilledExtractor(seg_len=1/6, gpu_id=gpu_id) #标签timestamp是6Hz
+# def get_trill_distilled_ft(all_videos, audio_root, video_id, batch_size, gpu_id):
+def get_trill_distilled_ft(all_videos, audio_root, video_id, batch_size):
+    # trill_distilled = TrillDistilledExtractor(seg_len=1/6, gpu_id=gpu_id) #标签timestamp是6Hz
+    trill_distilled = TrillDistilledExtractor(seg_len=1/6) #标签timestamp是6Hz
     audio_path = osp.join(audio_root, video_id + '.wav')
     ft = trill_distilled(audio_path, batch_size=batch_size)
     timestamps = all_videos[video_id]
@@ -49,19 +52,33 @@ def get_trill_distilled_ft(all_videos, audio_root, video_id, batch_size, gpu_id)
 
 
 
-def make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size, gpu_id):
+# def make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size, gpu_id):
+def make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size):
     partition = h5py.File(osp.join(target_dir, 'partition.h5'), 'r')
-    trill_distilled_h5f = h5py.File(osp.join(save_dir, 'trill_distilled.h5'), 'w')
+    # trill_distilled_h5f = h5py.File(osp.join(save_dir, 'trill_distilled.h5'), 'w')
+    trill_distilled_h5f = h5py.File(osp.join(save_dir, 'trill_distilled_train.h5'), 'w')
+
+
     all_videos = get_timestamp(target_dir)
-    for set_name in ['train', 'val', 'test']:
+    # for set_name in ['train', 'val', 'test']:
+    for set_name in ['train']:
         trill_distilled_set_group = trill_distilled_h5f.create_group(set_name)
         video_ids = partition[set_name]['valid']
+
+
+        # video_ids = video_ids[2500:] #
+
+
         for _id in tqdm(video_ids, desc=set_name):
             _id = _id.decode()
             trill_distilled_group = trill_distilled_set_group.create_group(_id)
-            timestamp, trill_distilled_ft = get_trill_distilled_ft(all_videos, audio_root, _id, batch_size, gpu_id) #按照video_id号抽取特征
+            # timestamp, trill_distilled_ft = get_trill_distilled_ft(all_videos, audio_root, _id, batch_size, gpu_id) #按照video_id号抽取特征
+            timestamp, trill_distilled_ft = get_trill_distilled_ft(all_videos, audio_root, _id, batch_size) #按照video_id号抽取特征
             trill_distilled_group['timestamp'] = timestamp
             trill_distilled_group['feature'] = trill_distilled_ft
+
+            del timestamp
+            del trill_distilled_ft
 
 
 def check_extracted(audio_root, target_dir): #检查是否所有有效的视频都抽出了音频
@@ -83,5 +100,15 @@ if __name__ == '__main__':
 
     # check_extracted(audio_root, target_dir)
 
+    gpu_id = 1
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = ' ' #默认情况下，TensorFlow会占用所有GPUs的所有GPU内存（取决于CUDA_VISIBLE_DEVICES这个系统变量）
+
+    physical_devices = tf.config.list_physical_devices('GPU') # 当前可用的gpu列表
+    for gpu in physical_devices:
+        tf.config.experimental.set_memory_growth(gpu, True) # 将GPU的显存使用策略设置为“仅在需要时申请显存空间”
+
     print('making trill_distilled')
-    make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size=128, gpu_id=0)
+    # make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size=32, gpu_id=1)
+    make_trill_distilled_feature(target_dir, audio_root, save_dir, batch_size=16)

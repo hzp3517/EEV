@@ -14,3 +14,4 @@ csv_results/
 /models/baseline_model_backup.py
 submit/
 /autorun/auto
+test_ensemble.py
